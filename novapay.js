@@ -1,5 +1,5 @@
 // ================================================
-// NOVAPAY — Full Application Logic (Enhanced)
+// NOVAPAY — Full Application Logic
 // ================================================
 
 // ======= STATE =======
@@ -39,10 +39,6 @@ function showError(id, msg) {
     if (!el) return;
     el.textContent = msg;
     el.style.display = 'block';
-    // Re-trigger shake animation
-    el.style.animation = 'none';
-    el.offsetHeight; // reflow
-    el.style.animation = '';
 }
 function hideError(id) {
     const el = document.getElementById(id);
@@ -58,32 +54,6 @@ function saveUserData() {
     saveUsers();
 }
 
-// ======= FLOATING PARTICLES =======
-function spawnParticles() {
-    const container = document.getElementById('login-page');
-    if (!container) return;
-    const colors = ['rgba(0,229,255,', 'rgba(124,58,237,', 'rgba(16,185,129,'];
-    for (let i = 0; i < 18; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const size = Math.random() * 4 + 2;
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const delay = Math.random() * 10;
-        const duration = Math.random() * 12 + 8;
-        const left = Math.random() * 100;
-        p.style.cssText = `
-            width:${size}px;height:${size}px;
-            left:${left}%;bottom:-10px;
-            background:${color}${Math.random() * 0.5 + 0.2});
-            box-shadow:0 0 ${size * 2}px ${color}0.4);
-            animation-delay:${delay}s;
-            animation-duration:${duration}s;
-        `;
-        container.appendChild(p);
-    }
-}
-spawnParticles();
-
 // ======= TOAST =======
 let toastTimer;
 function showToast(title, msg, icon = '✓') {
@@ -91,8 +61,6 @@ function showToast(title, msg, icon = '✓') {
     document.getElementById('toast-title').textContent = title;
     document.getElementById('toast-msg').textContent = msg;
     const t = document.getElementById('toast');
-    t.classList.remove('show');
-    void t.offsetWidth; // reflow to re-trigger animation
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
@@ -119,14 +87,10 @@ function doLogin() {
     if (user.password !== btoa(pass)) { showError('login-error', 'Incorrect password.'); return; }
 
     const btn = document.getElementById('login-btn');
-    btn.textContent = 'Signing in…';
-    btn.style.opacity = '0.7';
-    btn.disabled = true;
+    btn.textContent = 'Signing in...'; btn.style.opacity = '0.7';
 
     setTimeout(() => {
-        btn.textContent = 'Sign In →';
-        btn.style.opacity = '1';
-        btn.disabled = false;
+        btn.textContent = 'Sign In →'; btn.style.opacity = '1';
         currentUser = user;
         transactions = user.transactions || [];
         withdrawals = user.withdrawals || [];
@@ -181,9 +145,7 @@ function doRegister() {
         showError('reg-error3', 'Please accept the Terms of Service.'); return;
     }
     const btn = document.getElementById('reg-submit-btn');
-    btn.textContent = 'Creating account…';
-    btn.style.opacity = '0.7';
-    btn.disabled = true;
+    btn.textContent = 'Creating account...'; btn.style.opacity = '0.7';
 
     const firstName = document.getElementById('reg-first').value.trim();
     const lastName = document.getElementById('reg-last').value.trim();
@@ -195,10 +157,7 @@ function doRegister() {
     const dob = document.getElementById('reg-dob').value;
 
     setTimeout(() => {
-        btn.textContent = 'Create Account →';
-        btn.style.opacity = '1';
-        btn.disabled = false;
-
+        btn.textContent = 'Create Account →'; btn.style.opacity = '1';
         const newUser = {
             firstName, lastName, email, phone,
             password: btoa(pass),
@@ -207,9 +166,9 @@ function doRegister() {
             cardNumber: genCardNumber(),
             cardExpiry: '09/' + (new Date().getFullYear() + 4).toString().slice(-2),
             memberSince: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
-            balance: 5000,
+            balance: 5000, // welcome bonus
             transactions: [{
-                id: Date.now(), type: 'credit', name: 'Welcome Bonus', amount: 5000,
+                id: Date.now(), type: 'credit', name: 'Referral Bonus', amount: 5000,
                 date: new Date().toLocaleDateString(), icon: '🎉', category: 'other'
             }],
             withdrawals: [], savedBanks: []
@@ -217,6 +176,7 @@ function doRegister() {
         users[email] = newUser;
         saveUsers();
         showToast('Account Created!', 'Welcome to NovaPay, ' + firstName + '! $5,000 bonus added.', '🎉');
+        // Auto-login
         currentUser = newUser;
         transactions = newUser.transactions;
         withdrawals = newUser.withdrawals;
@@ -230,7 +190,7 @@ function doRegister() {
     }, 1200);
 }
 
-// ======= PASSWORD STRENGTH =======
+// Password strength indicator
 document.getElementById('reg-pass')?.addEventListener('input', function () {
     const val = this.value;
     const bar = document.getElementById('pw-strength');
@@ -241,10 +201,8 @@ document.getElementById('reg-pass')?.addEventListener('input', function () {
     if (/[^A-Za-z0-9]/.test(val)) strength++;
     const colors = ['', '#ef4444', '#f59e0b', '#10b981', '#00e5ff'];
     const widths = ['0%', '25%', '50%', '75%', '100%'];
-    const labels = ['', 'Weak', 'Fair', 'Strong', 'Excellent'];
     bar.style.cssText = `margin-top:6px;height:4px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;`;
     bar.innerHTML = `<div style="width:${widths[strength]};height:100%;background:${colors[strength]};border-radius:4px;transition:all 0.4s;"></div>`;
-    bar.title = labels[strength];
 });
 
 // ======= LOGOUT =======
@@ -264,16 +222,19 @@ function loadDashboard() {
     const u = currentUser;
     const initials = getInitials(u.firstName + ' ' + u.lastName);
 
+    // Sidebar + topbar
     document.getElementById('sidebar-avatar').textContent = initials;
     document.getElementById('topbar-avatar').textContent = initials;
     document.getElementById('sidebar-name').textContent = u.firstName + ' ' + u.lastName;
     document.getElementById('sidebar-role').textContent = u.accountType.charAt(0).toUpperCase() + u.accountType.slice(1) + ' Account';
     document.getElementById('topbar-greeting').textContent = getGreeting() + ', ' + u.firstName + ' 👋';
 
+    // Virtual card
     document.getElementById('vc-number').textContent = u.cardNumber;
     document.getElementById('vc-name').textContent = (u.firstName + ' ' + u.lastName).toUpperCase();
     document.getElementById('vc-expiry').textContent = u.cardExpiry;
 
+    // Profile page
     document.getElementById('profile-avatar').textContent = initials;
     document.getElementById('profile-fullname').textContent = u.firstName + ' ' + u.lastName;
     document.getElementById('profile-email-disp').textContent = u.email;
@@ -294,8 +255,8 @@ function loadDashboard() {
 
 function updateBalanceDisplays() {
     if (!currentUser) return;
-    const profileBal = document.getElementById('profile-balance');
-    if (profileBal) profileBal.textContent = fmt(balance);
+    document.getElementById('profile-balance').textContent = fmt(balance);
+    document.getElementById('pi-balance') && (document.getElementById('pi-balance').textContent = fmt(balance));
 }
 
 // ======= SECTIONS =======
@@ -310,15 +271,11 @@ function showSection(name, navEl) {
         navEl.classList.add('active');
     }
     closeSidebar();
-    if (name === 'withdraw') {
-        wdGoStep(1);
-        const wdBal = document.getElementById('wd-avail-bal');
-        if (wdBal) wdBal.textContent = fmt(balance);
-    }
+    if (name === 'withdraw') { wdGoStep(1); document.getElementById('wd-avail-bal').textContent = fmt(balance); }
     if (name === 'transactions') renderTransactions('all');
 }
 
-// ======= SIDEBAR =======
+// ======= SIDEBAR / TOPBAR =======
 function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sidebar-overlay').classList.toggle('open');
@@ -344,7 +301,6 @@ function animateCounter(el, target, prefix = '', duration = 1500) {
         const val = Math.floor(eased * target);
         el.textContent = prefix + val.toLocaleString();
         if (progress < 1) requestAnimationFrame(update);
-        else el.textContent = prefix + target.toLocaleString(); // ensure exact final value
     };
     requestAnimationFrame(update);
 }
@@ -356,34 +312,22 @@ function animateDashboard() {
         animateCounter(document.getElementById('expense-num'), 2840, '$');
         animateCounter(document.getElementById('savings-num'), 18500, '$');
         animateCounter(document.getElementById('invest-num'), 12400, '$');
-        // Donut segments
         setTimeout(() => {
-            const circ = 251.3;
-            const segs = [0.35, 0.25, 0.20, 0.20];
-            ['d1', 'd2', 'd3', 'd4'].forEach((id, i) => {
-                const el = document.getElementById(id);
-                if (el) el.style.strokeDashoffset = circ * (1 - segs[i]);
-            });
-            const total = document.getElementById('donut-total');
-            if (total) total.textContent = fmt(balance < 100 ? 5000 : balance);
+            document.getElementById('d1').style.strokeDashoffset = 251.3 * (1 - 0.35);
+            document.getElementById('d2').style.strokeDashoffset = 251.3 * (1 - 0.25);
+            document.getElementById('d3').style.strokeDashoffset = 251.3 * (1 - 0.20);
+            document.getElementById('d4').style.strokeDashoffset = 251.3 * (1 - 0.20);
         }, 400);
-        // Spending bars
         setTimeout(() => {
             document.getElementById('bar1').style.width = '35%';
             document.getElementById('bar2').style.width = '25%';
             document.getElementById('bar3').style.width = '20%';
             document.getElementById('bar4').style.width = '20%';
-            const spending = balance * 0.3;
-            document.getElementById('bar1-label').textContent = fmt(spending * 0.35);
-            document.getElementById('bar2-label').textContent = fmt(spending * 0.25);
-            document.getElementById('bar3-label').textContent = fmt(spending * 0.20);
-            document.getElementById('bar4-label').textContent = fmt(spending * 0.20);
         }, 600);
-        renderRecentTx();
     }, 300);
 }
 
-// ======= QUICK TRANSFER =======
+// ======= QUICK TRANSFER (dashboard widget) =======
 document.querySelectorAll('.contact-item').forEach(item => {
     item.addEventListener('click', function () {
         document.querySelectorAll('.contact-item').forEach(c => c.classList.remove('active'));
@@ -394,10 +338,8 @@ document.querySelectorAll('.contact-item').forEach(item => {
 function doTransfer() {
     const amount = parseFloat(document.getElementById('transfer-amount').value);
     if (!amount || amount <= 0) { showToast('Error', 'Please enter a valid amount.', '⚠️'); return; }
-    if (!currentUser) { showToast('Not logged in', 'Please sign in first.', '⚠️'); return; }
     if (amount > balance) { showToast('Insufficient Funds', 'You don\'t have enough balance.', '⚠️'); return; }
     balance -= amount;
-    updateBalanceDisplays();
     const active = document.querySelector('.contact-item.active .contact-name');
     const name = active ? active.textContent : 'Contact';
     addTransaction({ type: 'debit', name: 'Transfer to ' + name, amount, icon: '↑', category: 'transfer' });
@@ -419,36 +361,26 @@ function renderRecentTx() {
     const el = document.getElementById('recent-tx-list');
     if (!el) return;
     const recent = transactions.slice(0, 5);
-    if (!recent.length) {
-        el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center;">No transactions yet</div>';
-        return;
-    }
-    el.innerHTML = recent.map((tx, i) => txHTML(tx, i)).join('');
+    if (!recent.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center;">No transactions yet</div>'; return; }
+    el.innerHTML = recent.map(tx => txHTML(tx)).join('');
 }
 
-function txHTML(tx, animIdx = 0) {
+function txHTML(tx) {
     const isCredit = tx.type === 'credit';
     const isWd = tx.type === 'withdrawal';
     const amtClass = isCredit ? 'credit' : isWd ? 'withdrawal' : 'debit';
     const sign = isCredit ? '+' : '-';
-    const delay = animIdx * 50;
-    return `<div class="transaction-item" style="animation-delay:${delay}ms">
-      <div class="tx-icon" style="background:rgba(${isCredit ? '16,185,129' : isWd ? '245,158,11' : '239,68,68'},0.12);font-size:18px;">${tx.icon || '💳'}</div>
-      <div class="tx-info">
-        <div class="tx-name">${tx.name}</div>
-        <div class="tx-date">${tx.date}${tx.category ? ' · ' + tx.category : ''}</div>
-      </div>
-      <div class="tx-amount ${amtClass}">${sign}${fmt(tx.amount)}</div>
-    </div>`;
+    return `<div class="transaction-item">
+    <div class="tx-icon" style="background:rgba(${isCredit ? '16,185,129' : isWd ? '245,158,11' : '239,68,68'},0.12);font-size:18px;">${tx.icon || '💳'}</div>
+    <div class="tx-info"><div class="tx-name">${tx.name}</div><div class="tx-date">${tx.date}</div></div>
+    <div class="tx-amount ${amtClass}">${sign}${fmt(tx.amount)}</div>
+  </div>`;
 }
 
 let currentTxFilter = 'all';
 function filterTx(type, el) {
     currentTxFilter = type;
-    if (el) {
-        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-    }
+    if (el) { document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active')); el.classList.add('active'); }
     renderTransactions(type);
 }
 
@@ -458,16 +390,11 @@ function renderTransactions(filter) {
     if (!el) return;
     let list = transactions;
     if (filter !== 'all') list = transactions.filter(t => t.type === filter);
-    if (!list.length) {
-        el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center;">No transactions found</div>';
-        return;
-    }
-    el.innerHTML = list.map((tx, i) => txHTML(tx, i)).join('');
+    if (!list.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:30px 0;text-align:center;">No transactions found</div>'; return; }
+    el.innerHTML = list.map(tx => txHTML(tx)).join('');
+    // badge
     const badge = document.getElementById('tx-badge');
-    if (badge) {
-        badge.textContent = transactions.length;
-        badge.style.display = transactions.length ? 'block' : 'none';
-    }
+    if (badge) { badge.textContent = transactions.length; badge.style.display = transactions.length ? 'block' : 'none'; }
 }
 
 // ======= BANK WITHDRAWAL =======
@@ -475,15 +402,13 @@ let wdCurrentStep = 1;
 
 function wdGoStep(n) {
     [1, 2, 3].forEach(i => {
-        const step = document.getElementById('wd-step' + i);
+        document.getElementById('wd-step' + i).style.display = i === n ? 'block' : 'none';
         const p = document.getElementById('wdp' + i);
         const l = document.getElementById('wdl' + i);
-        if (step) step.style.display = i === n ? 'block' : 'none';
         if (p) { p.classList.toggle('active', i === n); p.classList.toggle('done', i < n); }
         if (l) l.classList.toggle('done', i < n);
     });
-    const success = document.getElementById('wd-success');
-    if (success) success.style.display = 'none';
+    document.getElementById('wd-success').style.display = 'none';
     wdCurrentStep = n;
 }
 
@@ -495,16 +420,15 @@ function wdStep1Next() {
     const routing = document.getElementById('wd-routing').value.trim();
     if (!bank) { showError('wd-error1', 'Please select a bank.'); return; }
     if (!acname) { showError('wd-error1', 'Please enter the account holder name.'); return; }
-    if (acnum.length < 8) { showError('wd-error1', 'Please enter a valid account number (min 8 digits).'); return; }
+    if (acnum.length < 8) { showError('wd-error1', 'Please enter a valid account number.'); return; }
     if (routing.length !== 9 || !/^\d+$/.test(routing)) { showError('wd-error1', 'Routing number must be exactly 9 digits.'); return; }
-    const wdBal = document.getElementById('wd-avail-bal');
-    if (wdBal) wdBal.textContent = fmt(balance);
+    document.getElementById('wd-avail-bal').textContent = fmt(balance);
     wdGoStep(2);
 }
 
 function setWdAmount(n) {
-    const el = document.getElementById('wd-amount');
-    if (el) { el.value = n; updateFeeBreakdown(); }
+    document.getElementById('wd-amount').value = n;
+    updateFeeBreakdown();
 }
 
 document.getElementById('wd-amount')?.addEventListener('input', updateFeeBreakdown);
@@ -522,6 +446,7 @@ function wdStep2Next() {
     if (amount > balance) { showError('wd-error2', 'Amount exceeds your available balance of ' + fmt(balance) + '.'); return; }
     if (amount < 1) { showError('wd-error2', 'Minimum withdrawal is $1.00'); return; }
 
+    // Fill confirm page
     document.getElementById('conf-bank').textContent = document.getElementById('wd-bank').value;
     document.getElementById('conf-name').textContent = document.getElementById('wd-acname').value;
     const acnum = document.getElementById('wd-acnum').value;
@@ -547,15 +472,18 @@ function wdConfirm() {
     const actype = document.getElementById('wd-actype').value;
     const note = document.getElementById('wd-note').value.trim();
 
+    // Deduct balance
     balance -= amount;
     updateBalanceDisplays();
     animateCounter(document.getElementById('balance-num'), balance);
 
+    // Add transaction
     addTransaction({
         type: 'withdrawal', name: 'Withdrawal to ' + bank, amount, icon: '🏦', category: 'withdrawal',
         bank, acname, acnum, actype, note
     });
 
+    // Save bank if checked
     if (document.getElementById('wd-save').checked) {
         const exists = savedBanks.find(b => b.acnum === acnum);
         if (!exists) {
@@ -564,15 +492,15 @@ function wdConfirm() {
         }
     }
 
+    // Add to withdrawal history
     withdrawals.unshift({ date: new Date().toLocaleDateString(), bank, amount, acnum, status: 'Processing' });
     renderWithdrawHistory();
     saveUserData();
 
-    [1, 2, 3].forEach(i => { const s = document.getElementById('wd-step' + i); if (s) s.style.display = 'none'; });
-    const success = document.getElementById('wd-success');
-    if (success) success.style.display = 'block';
-    const msg = document.getElementById('wd-success-msg');
-    if (msg) msg.textContent = fmt(amount) + ' → ' + bank + ' (••••' + acnum.slice(-4) + ')';
+    // Show success
+    [1, 2, 3].forEach(i => document.getElementById('wd-step' + i).style.display = 'none');
+    document.getElementById('wd-success').style.display = 'block';
+    document.getElementById('wd-success-msg').textContent = fmt(amount) + ' → ' + bank + ' (••••' + acnum.slice(-4) + ')';
     showToast('Withdrawal Initiated!', fmt(amount) + ' is being processed.', '🏦');
 }
 
@@ -581,22 +509,17 @@ function resetWithdraw() {
         const el = document.getElementById(id);
         if (el) el.value = '';
     });
-    const saveCb = document.getElementById('wd-save');
-    if (saveCb) saveCb.checked = false;
+    document.getElementById('wd-save').checked = false;
     document.getElementById('fee-amount').textContent = '$0.00';
     document.getElementById('fee-total').textContent = '$0.00';
-    const wdBal = document.getElementById('wd-avail-bal');
-    if (wdBal) wdBal.textContent = fmt(balance);
+    document.getElementById('wd-avail-bal').textContent = fmt(balance);
     wdGoStep(1);
 }
 
 function renderSavedBanks() {
     const el = document.getElementById('saved-banks-list');
     if (!el) return;
-    if (!savedBanks.length) {
-        el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:16px 0;text-align:center;">No saved banks yet</div>';
-        return;
-    }
+    if (!savedBanks.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:16px 0;text-align:center;">No saved banks yet</div>'; return; }
     el.innerHTML = savedBanks.map((b, i) => `
     <div class="saved-bank-item" onclick="fillBankDetails(${i})">
       <div class="bank-icon">🏦</div>
@@ -615,17 +538,13 @@ function fillBankDetails(i) {
     document.getElementById('wd-acname').value = b.acname;
     document.getElementById('wd-acnum').value = b.acnum;
     document.getElementById('wd-actype').value = b.actype;
-    showSection('withdraw', null);
     showToast('Bank Loaded', b.bank + ' details filled in.', '✓');
 }
 
 function renderWithdrawHistory() {
     const el = document.getElementById('wd-history-list');
     if (!el) return;
-    if (!withdrawals.length) {
-        el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:16px 0;text-align:center;">No withdrawals yet</div>';
-        return;
-    }
+    if (!withdrawals.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:16px 0;text-align:center;">No withdrawals yet</div>'; return; }
     el.innerHTML = withdrawals.slice(0, 5).map(w => `
     <div class="wd-history-item">
       <div class="bank-icon" style="width:34px;height:34px;font-size:13px;border-radius:8px;">🏦</div>
@@ -649,37 +568,142 @@ document.addEventListener('click', function (e) {
     const rect = btn.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
     r.style.cssText = `position:absolute;border-radius:50%;background:rgba(255,255,255,0.15);width:${size}px;height:${size}px;left:${e.clientX - rect.left - size / 2}px;top:${e.clientY - rect.top - size / 2}px;transform:scale(0);animation:rippleAnim 0.6s linear;pointer-events:none;`;
-    btn.style.position = 'relative';
-    btn.style.overflow = 'hidden';
+    btn.style.position = 'relative'; btn.style.overflow = 'hidden';
     btn.appendChild(r);
     setTimeout(() => r.remove(), 600);
 });
 
-// ======= VIRTUAL CARD — MOUSE TILT =======
-const vcCard = document.querySelector('.virtual-card');
-if (vcCard) {
-    vcCard.addEventListener('mousemove', function (e) {
-        const rect = this.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
-        this.style.transform = `perspective(600px) rotateY(${x * 12}deg) rotateX(${-y * 8}deg) translateY(-4px)`;
-    });
-    vcCard.addEventListener('mouseleave', function () {
-        this.style.transform = '';
-    });
-}
-
 // ======= KEYBOARD =======
 document.getElementById('login-pass')?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('login-email')?.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pass')?.focus(); });
 document.getElementById('reg-pass2')?.addEventListener('keydown', e => { if (e.key === 'Enter') regStep2Next(); });
+// ======= ADD FUNDS MODAL =======
+function openAddFunds() {
+    const modal = document.getElementById('add-funds-modal');
+    modal.classList.add('open');
+    // Prefill bank reference with user account number
+    const refEl = document.getElementById('af-bank-ref');
+    if (refEl && currentUser) refEl.textContent = currentUser.accountNumber;
+    // Reset to card tab
+    switchPayTab('card', document.querySelector('.pay-tab'));
+}
 
-// ======= AUTO-FORMAT ROUTING NUMBER =======
-document.getElementById('wd-routing')?.addEventListener('input', function () {
-    this.value = this.value.replace(/\D/g, '').slice(0, 9);
-});
+function closeAddFunds(e) {
+    if (e && e.target !== document.getElementById('add-funds-modal')) return;
+    document.getElementById('add-funds-modal').classList.remove('open');
+}
 
-// ======= AUTO-FORMAT ACCOUNT NUMBER =======
-document.getElementById('wd-acnum')?.addEventListener('input', function () {
-    this.value = this.value.replace(/\D/g, '').slice(0, 17);
+function switchPayTab(tab, el) {
+    ['card', 'bank', 'crypto'].forEach(t => {
+        document.getElementById('pay-tab-' + t).style.display = t === tab ? 'block' : 'none';
+    });
+    document.querySelectorAll('.pay-tab').forEach(b => b.classList.remove('active'));
+    if (el) el.classList.add('active');
+}
+
+function setAfAmount(tab, val) {
+    const el = document.getElementById('af-' + tab + '-amount');
+    if (el) el.value = val;
+}
+
+function formatCardInput(input) {
+    let val = input.value.replace(/\D/g, '').slice(0, 16);
+    input.value = val.replace(/(.{4})/g, '$1 ').trim();
+}
+
+function formatExpiry(input) {
+    let val = input.value.replace(/\D/g, '').slice(0, 4);
+    if (val.length >= 3) val = val.slice(0, 2) + '/' + val.slice(2);
+    input.value = val;
+}
+
+function copyAddr(el) {
+    const addr = el.textContent.replace('tap to copy', '').trim();
+    navigator.clipboard?.writeText(addr).then(() => showToast('Copied!', 'Wallet address copied to clipboard.', '✓'));
+}
+
+function processAddFunds(method) {
+    hideError('af-' + method + '-error');
+
+    if (method === 'card') {
+        const name = document.getElementById('af-card-name').value.trim();
+        const num = document.getElementById('af-card-num').value.replace(/\s/g, '');
+        const expiry = document.getElementById('af-expiry').value.trim();
+        const cvv = document.getElementById('af-cvv').value.trim();
+        const amount = parseFloat(document.getElementById('af-card-amount').value);
+
+        if (!name) { showError('af-card-error', 'Please enter the cardholder name.'); return; }
+        if (num.length < 16) { showError('af-card-error', 'Please enter a valid 16-digit card number.'); return; }
+        if (!expiry.match(/^\d{2}\/\d{2}$/)) { showError('af-card-error', 'Please enter a valid expiry date (MM/YY).'); return; }
+        if (cvv.length < 3) { showError('af-card-error', 'Please enter a valid CVV.'); return; }
+        if (!amount || amount < 1) { showError('af-card-error', 'Please enter a valid amount (minimum $1).'); return; }
+
+        // Simulate processing
+        const btn = document.querySelector('#pay-tab-card .btn-primary');
+        btn.textContent = 'Processing…'; btn.style.opacity = '0.7';
+        setTimeout(() => {
+            btn.textContent = 'Add Funds →'; btn.style.opacity = '1';
+            balance += amount;
+            addTransaction({ type: 'credit', name: 'Card Deposit (•••• ' + num.slice(-4) + ')', amount, icon: '💳', category: 'deposit' });
+            updateBalanceDisplays();
+            animateCounter(document.getElementById('balance-num'), balance);
+            document.getElementById('add-funds-modal').classList.remove('open');
+            showToast('Funds Added!', fmt(amount) + ' has been added to your account.', '💰');
+            // Reset fields
+            ['af-card-name', 'af-card-num', 'af-expiry', 'af-cvv', 'af-card-amount'].forEach(id => {
+                const el = document.getElementById(id); if (el) el.value = '';
+            });
+        }, 1500);
+    }
+
+    else if (method === 'bank') {
+        const amount = parseFloat(document.getElementById('af-bank-amount').value);
+        if (!amount || amount < 1) { showError('af-bank-error', 'Please enter a valid amount.'); return; }
+        document.getElementById('add-funds-modal').classList.remove('open');
+        showToast('Transfer Registered', 'We\'ll credit ' + fmt(amount) + ' once we receive your transfer (1-3 business days).', '🏦');
+        document.getElementById('af-bank-amount').value = '';
+    }
+
+    else if (method === 'crypto') {
+        const amount = parseFloat(document.getElementById('af-crypto-amount').value);
+        if (!amount || amount < 10) { showError('af-crypto-error', 'Minimum crypto deposit is $10.'); return; }
+        document.getElementById('add-funds-modal').classList.remove('open');
+        showToast('Crypto Pending', fmt(amount) + ' will be credited after 3 network confirmations.', '₿');
+        document.getElementById('af-crypto-amount').value = '';
+    }
+}
+
+// ======= CONTACT SUPPORT MODAL =======
+function openSupport() {
+    document.getElementById('support-modal').classList.add('open');
+}
+
+function closeSupport(e) {
+    if (e && e.target !== document.getElementById('support-modal')) return;
+    document.getElementById('support-modal').classList.remove('open');
+}
+
+function submitSupport() {
+    hideError('support-error');
+    const subject = document.getElementById('support-subject').value;
+    const message = document.getElementById('support-message').value.trim();
+    if (!subject) { showError('support-error', 'Please select a subject.'); return; }
+    if (message.length < 10) { showError('support-error', 'Please describe your issue (at least 10 characters).'); return; }
+
+    const btn = document.querySelector('#support-modal .btn-primary');
+    btn.textContent = 'Sending…'; btn.style.opacity = '0.7';
+    setTimeout(() => {
+        btn.textContent = 'Send Message →'; btn.style.opacity = '1';
+        document.getElementById('support-subject').value = '';
+        document.getElementById('support-message').value = '';
+        document.getElementById('support-modal').classList.remove('open');
+        showToast('Message Sent!', 'Our team will get back to you within 24 hours.', '✉️');
+    }, 1200);
+}
+
+// Close modals on Escape key
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        document.getElementById('add-funds-modal')?.classList.remove('open');
+        document.getElementById('support-modal')?.classList.remove('open');
+    }
 });
