@@ -1,28 +1,20 @@
+cat > package.json << 'EOF'
 {
-  "name": "banking-site",
+  "name": "novapay",
   "version": "1.0.0",
-  "description": "��#\u0000 \u0000n\u0000o\u0000v\u0000a\u0000-\u0000p\u0000a\u0000y\u0000\r\u0000 \u0000",
-  "main": "backend.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Starrex271/nova-pay.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/Starrex271/nova-pay/issues"
+  "scripts": {
+    "start": "node backend.js"
   },
-  "homepage": "https://github.com/Starrex271/nova-pay#readme",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "body-parser": "^2.3.0",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "express": "^4.19.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
+EOF
